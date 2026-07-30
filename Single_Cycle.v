@@ -276,3 +276,74 @@ module Adder(in_1, in_2, Sum_out);
 
     assign Sum_out = in_1 + in_2;    
 endmodule
+
+
+//All modules instantiate
+module top(clk, rst);
+    input clk, rst;
+
+    wire [31:0] PC_top;
+    wire [31:0] instruction_top;
+    wire RegWrite_top;
+    wire [1:0] ALUOp_top;
+    wire [31:0] Read_data1_top, Read_data2_top;
+    wire [31:0] Immediate_extent_top;
+    wire [31:0] MUX1_top;
+    wire ALUSrc_top;
+    wire [3:0] ALUCtrl_top;
+    wire zero_top, branch_top;
+    wire [31:0] Sum_out_top;
+    wire [31:0] NextoPC_top;
+    wire [31:0] PC_in_top;
+    wire and_out_top;
+    wire [31:0] address_top;
+    wire [31:0] MemData_top;
+    wire MemToReg_top;
+    wire MemWrite_top;
+    wire MemRead_top;
+    wire [31:0] WriteBack_top;
+
+
+    //Program Counter 
+    Program_Counter PC (.clk(clk), .rst(rst), .PC_in(PC_in_top), .PC_out(PC_top));
+
+    //PC Adder
+    PCplus4 PC_Adder(.fromPC(PC_top), .NextoPC(NextoPC_top));
+
+    //Instruction Memory
+    InstructionMemory Inst_Memory(.clk(clk), .rst(rst), .read_address(PC_top), .instruction_out(instruction_top));
+
+    //Register File
+    RegisterFile Reg_File(.clk(clk), .rst(rst), .RegWrite(RegWrite_top), .Reg1(instruction_top[19:15]), .Reg2(instruction_top[24:20]), .destination_reg(instruction_top[11:7]), .write_data(WriteBack_top), .read_data1(Read_data1_top), .read_data2(Read_data2_top));
+
+    //Immediate Generator
+    Immediate_Generator ImmGen(.Opcode(instruction_top[6:0]), .instruction(instruction_top), .Immediate_extent(Immediate_extent_top));
+
+    //Control Unit
+    Control_Unit CtrlUnit(.instruction(instruction_top[6:0]), .Branch(branch_top), .MemRead(MemRead_top), .MemToReg(MemToReg_top), .ALUOp(ALUOp_top), .MemWrite(MemWrite_top), .ALUSrc(ALUSrc_top), .RegWrite(RegWrite_top));
+
+    //ALU Control
+    ALU_control ALUCtrl(.ALUOp(ALUOp_top), .fun7(instruction_top[30]), .fun3(instruction_top[14:12]), .Control_out(ALUCtrl_top));
+
+    //ALU
+    ALU_unit ALUUnit(.A(Read_data1_top), .B(MUX1_top), .Control_in(ALUCtrl_top), .ALU_Result(address_top), .zero(zero_top));
+
+    //ALU MUX
+    Mux1(.sel1(ALUSrc_top), .A1(Read_data2_top), .B1(Immediate_extent_top), .Mux1_out(MUX1_top));
+
+    //Adder
+    Adder Adder(.in_1(PC_top), .in_2(Immediate_extent_top), .Sum_out(Sum_out_top));
+
+    //AND gate
+    AND_logic(.Branch(branch_top), .zero(zero_top), .and_out(and_out_top));
+
+    //Adder MUX
+    Mux2 Adder_MUX(.sel2(and_out_top), .A2(NextoPC_top), .B2(Sum_out_top), .Mux2_out(PC_in_top));
+
+    //Data Memory
+    Data_Memory Data_Memory(.clk(clk), .rst(rst), .MemWrite(MemWrite_top), .MemRead(MemRead_top), .read_address(address_top), .Write_data(Read_data2_top), .MemData_out(MemData_top));
+
+    //MUX 3
+    Mux3 MUX3(.sel3(MemToReg_top), .A3(address_top), .B3(MemData_top), .Mux3_out(WriteBack_top));
+    
+endmodule
