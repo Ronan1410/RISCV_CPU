@@ -75,5 +75,26 @@ module RegisterFile(clk, rst, RegWrite, Reg1, Reg2, destination_reg, write_data,
 
     assign read_data1 = Registers[Reg1];
     assign read_data2 = Registers[Reg2];
+
+endmodule
+
+// Immediate Generator
+module Immediate_Generator(Opcode, instruction, Immediate_extent);
+
+    input [7:0] Opcode;
+    input [31:0] instruction;
+    output reg [31:0] Immediate_extent;
+
+    always @(*)
+    begin
+        case (Opcode)
+            7'b0000011: // I-type
+                Immediate_extent = {{20{instruction[31]}}, instruction[31:20]};
+            7'b0100011: // S-type
+                Immediate_extent = {{20{instruction[31]}}, instruction[31:25], instruction[11:7]};
+            7'b1100011: // B-type
+                Immediate_extent = {{19{instruction[31]}}, instruction[31], instruction[30:25], instruction[11:0], 1'b0};
+        endcase
+    end
     
 endmodule
