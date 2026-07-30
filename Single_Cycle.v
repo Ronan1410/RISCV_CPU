@@ -32,7 +32,11 @@ module InstructionMemory(clk, rst, read_address, instruction_out);
     output reg [31:0] instruction_out;
     integer k;
 
-    reg [31:0] instruction_memory [63:0];
+    reg [31:0] instruction_memory [0:63];
+
+    initial begin
+        $readmemh("program.hex", instruction_memory, 0, 4);
+    end
 
     always @(posedge clk or posedge rst)
     begin
@@ -43,8 +47,9 @@ module InstructionMemory(clk, rst, read_address, instruction_out);
             end
         end
         else
-        instruction_out <= instruction_memory[read_address];
+        instruction_out <= instruction_memory[read_address[7:2]];
     end
+
 endmodule
 
 //Register File
@@ -217,11 +222,11 @@ module Data_Memory(clk, rst, MemWrite, MemRead, read_address, Write_data, MemDat
         end
         else if (MemWrite)
         begin
-            D_Memory[read_address] <= Write_data;
+            D_Memory[read_address[7:2]] <= Write_data;
         end
     end
 
-    assign MemData_out = (MemRead) ? D_Memory[read_address] : 32'b0;
+    assign MemData_out = (MemRead) ? D_Memory[read_address[7:2]] : 32'b0;
 
 endmodule
 
@@ -349,24 +354,42 @@ endmodule
 
 
 //testbench
+`timescale 1ns/1ps
+
 module tb_top;
     reg clk, rst;
+
+    // Instantiate your CPU top module
     top uut(.clk(clk), .rst(rst));
 
+    // Clock generation: 10ns period
+    always #5 clk = ~clk;
+
     initial begin
+        // Initialize
         clk = 0;
         rst = 1;
-        #5;
-        rst = 0;
-        #400;
+
+        // Dump waveform for GTKWave
+        $dumpfile("cpu.vcd");
+        $dumpvars(0, tb_top);
+
+        // Release reset after 5ns
+        #5 rst = 0;
+
+        // Run simulation for 400ns
+        #400 $finish;
     end
 
-    always begin
-        #5 clk = ~clk;
-    end
-    
+    // Monitor key signals
     initial begin
-        $monitor("Time=%0t PC=%h Instruction=%h", $time, uut.PC_top, uut.instruction_top);
+        $monitor("t=%0t | PC=%h | Instr=%h | Reg1=%h | Reg2=%h | ALU=%h | WB=%h",
+                 $time,
+                 uut.PC_top,
+                 uut.instruction_top,
+                 uut.Read_data1_top,
+                 uut.Read_data2_top,
+                 uut.address_top,
+                 uut.WriteBack_top);
     end
-
 endmodule
