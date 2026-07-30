@@ -132,4 +132,43 @@ module Control_Unit(instruction, Branch, MemRead, MemToReg, ALUOp, MemWrite, ALU
     end
 endmodule
 
-//
+
+//ALU
+
+module ALU_unit(A, B, Control_in, ALU_Result, zero);
+
+    input [31:0] A, B;
+    input [3;0] Control_in;
+    output reg [31:0] ALU_Result;
+    output reg zero;
+
+    always @(control_in, or A or B)
+    begin
+        case(Control_in)
+            4'b0000: //AND
+            begin
+                zero <= 0;
+                ALU_Result <= A & B;
+            end
+            4'b0001: //OR
+            begin
+                zero <= 0;
+                ALU_Result <= A | B;
+            end
+            4'b0010: //ADD
+            begin
+                zero <= 0;
+                ALU_Result <= A + B;
+            end
+            4'b0110: //SUB
+            begin
+                if (A == B)
+                    zero <= 1;
+                else
+                    zero <= 0;
+
+                ALU_Result <= A - B;
+            end
+        endcase
+    end
+endmodule
