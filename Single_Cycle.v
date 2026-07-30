@@ -12,3 +12,14 @@ module Program_Counter(clk, rst, PC_in, PC_out);
             PC_out <= PC_in;
     end
 endmodule
+
+//PC + 4
+
+module PCplus4(fromPC, NextoPC);
+    input [31:0] fromPC;
+    output [31:0] NextoPC;
+
+    assign NextoPC = fromPC + 4;
+
+endmodule
+
