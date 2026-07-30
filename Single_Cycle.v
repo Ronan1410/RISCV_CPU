@@ -83,7 +83,7 @@ module Immediate_Generator(Opcode, instruction, Immediate_extent);
 
     input [7:0] Opcode;
     input [31:0] instruction;
-    output reg [31:0] Immediate_extent;
+    output [31:0] Immediate_extent;
 
     always @(*)
     begin
@@ -96,5 +96,40 @@ module Immediate_Generator(Opcode, instruction, Immediate_extent);
                 Immediate_extent = {{19{instruction[31]}}, instruction[31], instruction[30:25], instruction[11:0], 1'b0};
         endcase
     end
-    
+
 endmodule
+
+//Control Unit
+module Control_Unit(instruction, Branch, MemRead, MemToReg, ALUOp, MemWrite, ALUSrc, RegWrite);
+
+    input [6:0] instruction;
+    output Branch, MemRead, MemToReg, MemWrite, ALUSrc, RegWrite;
+    output [1:0] ALUOp;
+
+    always @(*)
+    begin
+        case(instruction)
+            7'b0110011: //R-type
+            {
+                ALUSrc, MemToReg, RegWrite, MemRead, MemWrite, Branch, ALUOp
+            } <= 8'b001000_01;
+
+            7'b0000011: //I-type
+            {
+                ALUSrc, MemToReg, RegWrite, MemRead, MemWrite, Branch, ALUOp
+            } <= 8'111100_00;
+
+            7'b0100011: //S-type
+            {
+                ALUSrc, MemToReg, RegWrite, MemRead, MemWrite, Branch, ALUOp
+            } <= 8'b100010_00;
+
+            7'b1100011: //B-type
+            {
+                ALUSrc, MemToReg, RegWrite, MemRead, MemWrite, Branch, ALUOp
+            } <= 8'b000001_01;
+        endcase
+    end
+endmodule
+
+//
