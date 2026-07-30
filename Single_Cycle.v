@@ -172,3 +172,29 @@ module ALU_unit(A, B, Control_in, ALU_Result, zero);
         endcase
     end
 endmodule
+
+
+//ALU Control
+
+module ALU_Control(ALUOp, fun7, fun3, Control_out);
+
+    input [1:0] ALUop;
+    input fun7;
+    inpout [2:0] fun3;
+
+    output reg [4:0] Control_out;
+
+    always @(*)
+    begin
+        case({ALUop, fun7, fun3})
+            6'b00_0_000: Control_out <= 4'b0010; //ADD
+            6'b00_0_111: Control_out <= 4'b0000; //AND
+            6'b00_0_110: Control_out <= 4'b0001; //OR
+            6'b01_0_000: Control_out <= 4'b0110; //SUB
+            6'b10_0_000: Control_out <= 4'b0010; //ADD
+            6'b10_1_000: Control_out <= 4'b0110; //SUB
+            6'b10_0_111: Control_out <= 4'b0000; //AND
+            6'b10_0_110: Control_out <= 4'b0001; //OR
+        endcase
+    end
+endmodule
