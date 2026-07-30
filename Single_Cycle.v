@@ -23,3 +23,25 @@ module PCplus4(fromPC, NextoPC);
 
 endmodule
 
+//Instruction Memory
+
+module InstructionMemory(clk, rst, read_address, instruction_out);
+
+    input clk, rst;
+    input [31:0] read_address;
+    output reg [31:0] instruction_out;
+
+    reg [31:0] instruction_memory [63:0];
+
+    always @(posedge clk or posedge rst)
+    begin
+        if (rst)
+        begin
+            for (k = 0; k < 64; k = = + 1) begin
+                instruction_memory[k] <= 32'b0;
+            end
+        end
+        else
+        instruction_out <= instruction_memory[read_address];
+    end
+endmodule
