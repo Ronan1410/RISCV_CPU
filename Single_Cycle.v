@@ -180,7 +180,7 @@ module ALU_Control(ALUOp, fun7, fun3, Control_out);
 
     input [1:0] ALUop;
     input fun7;
-    inpout [2:0] fun3;
+    input [2:0] fun3;
 
     output reg [4:0] Control_out;
 
@@ -197,4 +197,34 @@ module ALU_Control(ALUOp, fun7, fun3, Control_out);
             6'b10_0_110: Control_out <= 4'b0001; //OR
         endcase
     end
+endmodule
+
+
+//Data Memory
+
+module Data_Memory(clk, rst, MemWrite, MemRead, read_address, Write_data, MemData_out);
+
+    input clk, rst, MemWrite, MemRead;
+    input [31:0] read_address, Write_address;
+    output [31:0] MemData_out;
+
+    reg [31:0] D_Memory [63:0];
+    integer k;
+
+    always @(posedge clk, posedge rst)
+    begin
+        if (rst)
+        begin
+            for(k = 0; k < 64; k = k + 1) begin
+                D_Memory[k] <= 32'b0;
+            end
+        end
+        else if (MemWrite)
+        begin
+            D_Memory[read_address] <= Write_data;
+        end
+    end
+
+    assign MemData_out = (MemRead) ? D_Memory[read_address] : 32'b0;
+    
 endmodule
