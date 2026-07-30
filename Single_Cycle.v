@@ -80,31 +80,27 @@ endmodule
 
 // Immediate Generator
 module Immediate_Generator(Opcode, instruction, Immediate_extent);
-
-    input [7:0] Opcode;
+    input [6:0] Opcode;
     input [31:0] instruction;
-    output [31:0] Immediate_extent;
+    output reg [31:0] Immediate_extent;
 
-    always @(*)
-    begin
+    always @(*) begin
         case (Opcode)
-            7'b0000011: // I-type
-                Immediate_extent = {{20{instruction[31]}}, instruction[31:20]};
-            7'b0100011: // S-type
-                Immediate_extent = {{20{instruction[31]}}, instruction[31:25], instruction[11:7]};
-            7'b1100011: // B-type
-                Immediate_extent = {{19{instruction[31]}}, instruction[31], instruction[30:25], instruction[11:0], 1'b0};
+            7'b0000011: Immediate_extent = {{20{instruction[31]}}, instruction[31:20]}; // I-type
+            7'b0100011: Immediate_extent = {{20{instruction[31]}}, instruction[31:25], instruction[11:7]}; // S-type
+            7'b1100011: Immediate_extent = {{19{instruction[31]}}, instruction[31], instruction[30:25], instruction[11:0], 1'b0}; // B-type
+            default: Immediate_extent = 32'b0;
         endcase
     end
-
 endmodule
+
 
 //Control Unit
 module Control_Unit(instruction, Branch, MemRead, MemToReg, ALUOp, MemWrite, ALUSrc, RegWrite);
 
     input [6:0] instruction;
-    output Branch, MemRead, MemToReg, MemWrite, ALUSrc, RegWrite;
-    output [1:0] ALUOp;
+    output reg Branch, MemRead, MemToReg, MemWrite, ALUSrc, RegWrite;
+    output reg [1:0] ALUOp;
 
     always @(*)
     begin
@@ -117,7 +113,7 @@ module Control_Unit(instruction, Branch, MemRead, MemToReg, ALUOp, MemWrite, ALU
             7'b0000011: //I-type
             {
                 ALUSrc, MemToReg, RegWrite, MemRead, MemWrite, Branch, ALUOp
-            } <= 8'111100_00;
+            } <= 8'b111100_00;
 
             7'b0100011: //S-type
             {
@@ -138,11 +134,11 @@ endmodule
 module ALU_unit(A, B, Control_in, ALU_Result, zero);
 
     input [31:0] A, B;
-    input [3;0] Control_in;
+    input [3:0] Control_in;
     output reg [31:0] ALU_Result;
     output reg zero;
 
-    always @(control_in, or A or B)
+    always @(Control_in, A, B)
     begin
         case(Control_in)
             4'b0000: //AND
@@ -178,15 +174,15 @@ endmodule
 
 module ALU_Control(ALUOp, fun7, fun3, Control_out);
 
-    input [1:0] ALUop;
+    input [1:0] ALUOp;
     input fun7;
     input [2:0] fun3;
 
-    output reg [4:0] Control_out;
+    output reg [3:0] Control_out;
 
     always @(*)
     begin
-        case({ALUop, fun7, fun3})
+        case({ALUOp, fun7, fun3})
             6'b00_0_000: Control_out <= 4'b0010; //ADD
             6'b00_0_111: Control_out <= 4'b0000; //AND
             6'b00_0_110: Control_out <= 4'b0001; //OR
@@ -205,13 +201,13 @@ endmodule
 module Data_Memory(clk, rst, MemWrite, MemRead, read_address, Write_data, MemData_out);
 
     input clk, rst, MemWrite, MemRead;
-    input [31:0] read_address, Write_address;
+    input [31:0] read_address, Write_data;
     output [31:0] MemData_out;
 
     reg [31:0] D_Memory [63:0];
     integer k;
 
-    always @(posedge clk, posedge rst)
+    always @(posedge clk or posedge rst)
     begin
         if (rst)
         begin
@@ -323,19 +319,19 @@ module top(clk, rst);
     Control_Unit CtrlUnit(.instruction(instruction_top[6:0]), .Branch(branch_top), .MemRead(MemRead_top), .MemToReg(MemToReg_top), .ALUOp(ALUOp_top), .MemWrite(MemWrite_top), .ALUSrc(ALUSrc_top), .RegWrite(RegWrite_top));
 
     //ALU Control
-    ALU_control ALUCtrl(.ALUOp(ALUOp_top), .fun7(instruction_top[30]), .fun3(instruction_top[14:12]), .Control_out(ALUCtrl_top));
+    ALU_Control ALUCtrl(.ALUOp(ALUOp_top), .fun7(instruction_top[30]), .fun3(instruction_top[14:12]), .Control_out(ALUCtrl_top));
 
     //ALU
     ALU_unit ALUUnit(.A(Read_data1_top), .B(MUX1_top), .Control_in(ALUCtrl_top), .ALU_Result(address_top), .zero(zero_top));
 
     //ALU MUX
-    Mux1(.sel1(ALUSrc_top), .A1(Read_data2_top), .B1(Immediate_extent_top), .Mux1_out(MUX1_top));
+    Mux1 ALU_MUX(.sel1(ALUSrc_top), .A1(Read_data2_top), .B1(Immediate_extent_top), .Mux1_out(MUX1_top));
 
     //Adder
     Adder Adder(.in_1(PC_top), .in_2(Immediate_extent_top), .Sum_out(Sum_out_top));
 
     //AND gate
-    AND_logic(.Branch(branch_top), .zero(zero_top), .and_out(and_out_top));
+    AND_logic And_logic(.Branch(branch_top), .zero(zero_top), .and_out(and_out_top));
 
     //Adder MUX
     Mux2 Adder_MUX(.sel2(and_out_top), .A2(NextoPC_top), .B2(Sum_out_top), .Mux2_out(PC_in_top));
@@ -346,4 +342,31 @@ module top(clk, rst);
     //MUX 3
     Mux3 MUX3(.sel3(MemToReg_top), .A3(address_top), .B3(MemData_top), .Mux3_out(WriteBack_top));
     
+endmodule
+
+
+
+
+
+//testbench
+module tb_top;
+    reg clk, rst;
+    top uut(.clk(clk), .rst(rst));
+
+    initial begin
+        clk = 0;
+        rst = 1;
+        #5;
+        rst = 0;
+        #400;
+    end
+
+    always begin
+        #5 clk = ~clk;
+    end
+    
+    initial begin
+        $monitor("Time=%0t PC=%h Instruction=%h", $time, uut.PC_top, uut.instruction_top);
+    end
+
 endmodule
